@@ -1,0 +1,13 @@
+CREATE TABLE Student(
+	birthday DATE,
+	id INTEGER PRIMARY KEY,
+	name VARCHAR,
+	room INTEGER,
+	sex CHAR
+);
+
+CREATE TABLE Room(
+	id INTEGER PRIMARY KEY,
+	name VARCHAR
+);
+
