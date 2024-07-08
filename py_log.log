@@ -1,1 +1,12 @@
-10468 2024-07-05 16:42:36,498 INFO Connection to PostgreSQL DB db_students successful
+23052 2024-07-08 15:43:33,103 INFO Connection to PostgreSQL DB db_students successful
+23052 2024-07-08 15:43:33,109 INFO Query executed successfully
+23052 2024-07-08 15:43:33,109 INFO Connection closed
+23052 2024-07-08 15:43:33,157 INFO Connection to PostgreSQL DB db_students successful
+23052 2024-07-08 15:43:33,166 INFO Query executed successfully
+23052 2024-07-08 15:43:33,166 INFO Connection closed
+23052 2024-07-08 15:43:33,211 INFO Connection to PostgreSQL DB db_students successful
+23052 2024-07-08 15:43:33,239 INFO Query executed successfully
+23052 2024-07-08 15:43:33,240 INFO Connection closed
+23052 2024-07-08 15:43:33,280 INFO Connection to PostgreSQL DB db_students successful
+23052 2024-07-08 15:43:33,289 INFO Query executed successfully
+23052 2024-07-08 15:43:33,289 INFO Connection closed

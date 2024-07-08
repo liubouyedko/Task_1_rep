@@ -95,7 +95,7 @@ def create_database(admin_connection, db_name):
 # checking if table exists
 def check_table_exists(connection, table_name):
     if connection is None:
-        logging.error("Failed to check table: No connection to the database.")
+        logging.error("Failed to check table: Nso connection to the database.")
         return False
     cursor = connection.cursor()
     try:
@@ -110,6 +110,13 @@ def check_table_exists(connection, table_name):
     finally:
         cursor.close()
     return exists
+
+
+def close_connection():
+    global connection
+    if connection:
+        connection.close()
+        logging.info("Connection closed")
 
 
 if __name__ == "__main__":

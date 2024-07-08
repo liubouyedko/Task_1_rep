@@ -1,6 +1,6 @@
 import json
 import logging
-from db_setup import create_connection
+from db_setup import create_connection, close_connection
 
 
 # logging config
@@ -75,8 +75,23 @@ if __name__ == "__main__":
     json_file_path_students = "students.json"
     json_file_path_rooms = "rooms.json"
 
+    # load data from json files
     load_data_from_json(connection, json_file_path_students, "student")
     load_data_from_json(connection, json_file_path_rooms, "room")
+
+    # join tables
+    connection.autocommit = True
+    cursor = connection.cursor()
+
+    sql = """SELECT * FROM student 
+    LEFT JOIN room
+    ON student.room = room.id;
+    """
+
+    cursor.execute(sql)
+    results = cursor.fetchall()
+    # for i in results:
+    #     print(results, "\n")
 
     if connection:
         connection.close()
