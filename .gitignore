@@ -1,1 +1,3 @@
 virtual_space/
+__pycache__/
+*.log

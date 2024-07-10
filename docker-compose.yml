@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  postgres_db:
+    image: postgres:13
+    restart: always
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty123
+      POSTGRES_DB: db_students
+    ports:
+      - 5433:5432
+
+  python_app:
+    build:
+      context: .
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres_db
