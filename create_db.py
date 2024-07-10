@@ -2,7 +2,7 @@ import psycopg2
 import logging
 import json
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from psycopg2 import OperationalError, InterfaceError, sql
+from psycopg2 import OperationalError, InterfaceError
 
 
 connection = None
@@ -149,4 +149,6 @@ def load_data_from_json(connection, json_file_path, table_name):
                     connection.commit()
 
     except IOError as e:
-        logging.exception(f"The error '{e}' occured during oppening {json_file_path}")
+        logging.exception(
+            f"The error '{e}' occured during oppening JSON file: {json_file_path}"
+        )
