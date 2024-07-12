@@ -1,20 +1,35 @@
 version: '3.8'
-services:
-  postgres_db:
-    image: postgres:13
-    restart: always
-    container_name: db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: qwerty123
-      POSTGRES_DB: db_students
-    ports:
-      - 5433:5432
 
-  python_app:
-    build:
-      context: .
-    volumes:
-      - .:/app
-    depends_on:
-      - postgres_db
+services:
+
+  db:
+    image: postgres:latest
+    env_file:
+      - "config.env"
+    environment:
+      POSTGRES_DB: $(DB_NAME)
+      POSTGRES_USER: $(DB_USER)
+      POSTGRES_PASSWORD: $(DB_PASSWORD)
+    ports:
+      - "5432:5432"
+    networks:
+      - networkName
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     - db
+  #   env_file:
+  #     - "config.env"
+  #   volumes:
+  #     - .:/app
+  #   command: python main.py
+  #   tty: true
+  #   stdin_open: true
+  #   networks:
+  #     - networkName
+
+networks:
+  networkName:
+    name: networkName

@@ -1,11 +1,14 @@
-import psycopg2
 import logging
 import json
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from psycopg2 import OperationalError, InterfaceError
+import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.orm import sessionmaker
 
 
-connection = None
+dotenv_path = "config.env"
+load_dotenv(dotenv_path=dotenv_path)
 
 
 # logging config
@@ -17,91 +20,77 @@ logging.basicConfig(
 )
 
 
-def execute_sql_file(filename, connection):
+dbname = os.getenv("DB_NAME")
+user = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD")
+host = os.getenv("DB_HOST")
+port = os.getenv("DB_PORT")
+
+
+DATABASE_URL = f"postgresql+pg8000://{user}:{password}@{host}:{port}/{dbname}"
+engine = create_engine(DATABASE_URL)
+Session = sessionmaker(bind=engine)
+
+
+def execute_sql_file(filename, session):
     with open(filename, "r") as file:
         sql = file.read()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    cursor.close()
+
+    with session.begin():
+        session.execute(text(sql))
 
 
-def create_database(user, password, host, port, dbname):
-    conn = psycopg2.connect(
-        dbname="postgres", user=user, password=password, host=host, port=port
+def create_database():
+    engine_default = create_engine(
+        f"postgresql+pg8000://{user}:{password}@{host}:{port}/postgres"
     )
-    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cursor = conn.cursor()
+    SessionDefault = sessionmaker(bind=engine_default)
+    session_default = SessionDefault()
 
     try:
-        cursor.execute(f"CREATE DATABASE {dbname}")
-        logging.info(f"Database '{dbname}' created successfully.")
-    except psycopg2.errors.DuplicateDatabase:
-        logging.info(f"Database '{dbname}' already exists.")
+        query = f"SELECT 1 FROM pg_catalog.pg_database WHERE datname = '{dbname}'"
+        exists = session_default.execute(text(query)).scalar()
 
-    cursor.close()
-    conn.close()
+        if not exists:
+            session_default.execute(text(f"CREATE DATABASE {dbname}"))
+            logging.info(f"Database '{dbname}' created successfully.")
+        else:
+            logging.info(f"Database '{dbname}' already exists.")
+
+    except SQLAlchemyError as e:
+        logging.error(f"Error creating database '{dbname}': {e}")
+
+    finally:
+        session_default.close()
 
 
-def create_tables(user, password, host, port, dbname):
-    conn = psycopg2.connect(
-        dbname=dbname, user=user, password=password, host=host, port=port
-    )
-    cursor = conn.cursor()
+def create_tables():
+    session = Session()
 
     try:
-        execute_sql_file("db_schema.sql", conn)
-        conn.commit()
-        logging.info("Tables created successfully.")
-    except psycopg2.errors.UndefinedTable as e:
-        conn.rollback()
+        execute_sql_file("db_schema.sql", session)
+        logging.info("Tables created successfully")
+    except SQLAlchemyError as e:
         logging.error(f"Error creating tables: {e}")
 
-    cursor.close()
-    conn.close()
+    finally:
+        session.close()
 
 
-# creating connection if not exists
-def create_connection(db_name, db_user, db_password, db_host, db_port):
-    global connection
-    if connection is None or connection.closed:
-        try:
-            connection = psycopg2.connect(
-                database=db_name,
-                user=db_user,
-                password=db_password,
-                host=db_host,
-                port=db_port,
-            )
-            logging.info(f"Connection to PostgreSQL DB {db_name} successful")
-        except (OperationalError, InterfaceError) as e:
-            logging.exception(
-                f"The error '{e}' occurred during connecting to {db_name}"
-            )
-    else:
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1;")
-        except (OperationalError, InterfaceError):
-            try:
-                connection = psycopg2.connect(
-                    database=db_name,
-                    user=db_user,
-                    password=db_password,
-                    host=db_host,
-                    port=db_port,
-                )
-                logging.info(f"Reconnection to PostgreSQL DB {db_name} successful")
-            except (OperationalError, InterfaceError) as e:
-                logging.exception(
-                    f"The error '{e}' occurred during reconnecting to {db_name}"
-                )
-    return connection
+def create_connection():
+    try:
+        session = Session()
+        logging.info(f"Connected to database '{dbname}' successfully.")
+        return session
+    except SQLAlchemyError as e:
+        logging.error(f"Error connecting to database '{dbname}': {e}")
+        return None
 
 
-def load_data_from_json(connection, json_file_path, table_name):
-    if connection is None:
+def load_data_from_json(session, json_file_path, table_name):
+    if session is None:
         logging.error(
-            f"Failed to load data into {table_name}: No connection to the database."
+            f"Failed to load data into {table_name}: No connection to the database"
         )
         return
 
@@ -112,43 +101,45 @@ def load_data_from_json(connection, json_file_path, table_name):
             if table_name == "student":
                 insert_query = (
                     f"INSERT INTO {table_name} (birthday, id, name, room, sex) "
-                    f"VALUES (%s, %s, %s, %s, %s) "
+                    f"VALUES (:birthday, :id, :name, :room, :sex) "
                     f"ON CONFLICT (id) DO NOTHING"
                 )
 
-                with connection.cursor() as cursor:
-                    for record in data:
-                        cursor.execute(
-                            insert_query,
-                            (
-                                record.get("birthday", None),
-                                record.get("id", None),
-                                record.get("name", None),
-                                record.get("room", None),
-                                record.get("sex", None),
-                            ),
-                        )
-                    connection.commit()
+                for record in data:
+                    session.execute(
+                        text(insert_query),
+                        {
+                            "birthday": record.get("birthday"),
+                            "id": record.get("id"),
+                            "name": record.get("name"),
+                            "room": record.get("room"),
+                            "sex": record.get("sex"),
+                        },
+                    )
 
             elif table_name == "room":
                 insert_query = (
                     f"INSERT INTO {table_name} (id, name) "
-                    f"VALUES (%s, %s) "
+                    f"VALUES (:id, :name) "
                     f"ON CONFLICT (id) DO NOTHING"
                 )
 
-                with connection.cursor() as cursor:
-                    for record in data:
-                        cursor.execute(
-                            insert_query,
-                            (
-                                record.get("id", None),
-                                record.get("name", None),
-                            ),
-                        )
-                    connection.commit()
+                for record in data:
+                    session.execute(
+                        text(insert_query),
+                        {
+                            "id": record.get("id"),
+                            "name": record.get("name"),
+                        },
+                    )
+            session.commit()
+            logging.info(f"Data '{table_name}' loaded into database successfully")
 
     except IOError as e:
-        logging.exception(
-            f"The error '{e}' occured during oppening JSON file: {json_file_path}"
+        logging.error(
+            f"The error '{e}' occurred during opening JSON file: {json_file_path}"
         )
+    except IntegrityError as e:
+        logging.error(f"Data integrity error: {e}")
+    except SQLAlchemyError as e:
+        logging.error(f"SQLAlchemy error: {e}")

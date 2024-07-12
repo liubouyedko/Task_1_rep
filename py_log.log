@@ -1,3 +1,5 @@
-14472 2024-07-10 13:11:10,294 INFO Database 'db_students' already exists.
-14472 2024-07-10 13:11:10,341 INFO Tables created successfully.
-14472 2024-07-10 13:11:10,372 INFO Connection to PostgreSQL DB db_students successful
+1 2024-07-12 09:31:35,817 ERROR Error creating database 'db_students': (pg8000.exceptions.InterfaceError) Can't create a connection to host 127.0.0.1 and port 5432 (timeout is None and source_address is None).
+(Background on this error at: https://sqlalche.me/e/20/rvf5)
+1 2024-07-12 09:31:35,820 ERROR Error creating tables: (pg8000.exceptions.InterfaceError) Can't create a connection to host 127.0.0.1 and port 5432 (timeout is None and source_address is None).
+(Background on this error at: https://sqlalche.me/e/20/rvf5)
+1 2024-07-12 09:31:35,820 INFO Connected to database 'db_students' successfully.

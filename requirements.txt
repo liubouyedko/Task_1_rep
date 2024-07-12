@@ -1,3 +1,5 @@
-psycopg2-binary
 beautifulsoup4
 lxml
+python-dotenv
+sqlalchemy
+pg8000
