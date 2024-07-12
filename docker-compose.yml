@@ -14,21 +14,21 @@ services:
       - "5432:5432"
     networks:
       - networkName
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   depends_on:
-  #     - db
-  #   env_file:
-  #     - "config.env"
-  #   volumes:
-  #     - .:/app
-  #   command: python main.py
-  #   tty: true
-  #   stdin_open: true
-  #   networks:
-  #     - networkName
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    env_file:
+      - "config.env"
+    volumes:
+      - .:/app
+    command: python main.py
+    tty: true
+    stdin_open: true
+    networks:
+      - networkName
 
 networks:
   networkName:
