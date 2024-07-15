@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS Room (
     );
 
 CREATE TABLE IF NOT EXISTS Student (
-        birthday TIMESTAMP NOT NULL, 
+        birthday TIMESTAMP NOT NULL,
         id INTEGER PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         room INTEGER NOT NULL,

@@ -1,16 +1,14 @@
 import json
 import logging
-from decimal import Decimal
-from bs4 import BeautifulSoup
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.engine.row import Row
-from dotenv import load_dotenv
 import os
+from decimal import Decimal
+from typing import Any, List, Tuple
 
+import psycopg2
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
-dotenv_path = "config.env"
+dotenv_path = ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
 
@@ -29,62 +27,54 @@ password = os.getenv("DB_PASSWORD")
 host = os.getenv("DB_HOST")
 port = os.getenv("DB_PORT")
 
-DATABASE_URL = f"postgresql+pg8000://{user}:{password}@{host}:{port}/{dbname}"
-engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
 
+def execute_sql_file(sql_file, connection) -> List[List[Tuple[Any, ...]]]:
+    with open(sql_file, "r") as file:
+        sql = file.read()
 
-def execute_sql_file(sql_file):
-    session = Session()
+    cursor = connection.cursor()
+    queries = sql.split(";")  # Разделение запросов по комментариям
     results = []
-    try:
-        with open(sql_file, "r") as file:
-            sql = file.read()
-        queries = sql.split(";")
-        for query in queries:
-            query = query.strip()
-            if query:
-                result = session.execute(text(query)).fetchall()
-                results.append(result)
-                logging.info("SQL query executed successfully")
-    except SQLAlchemyError as e:
-        logging.error(f"Error executing query: {query}")
-        logging.error(f"Database error: {e}")
-        raise
-    finally:
-        session.close()
+
+    for query in queries:
+        query = query.strip()
+        if query:  # Проверка, что запрос не пустой
+            try:
+                cursor.execute(query)
+                results.append(cursor.fetchall())
+            except psycopg2.Error as e:
+                logging.error(f"Error executing query: {query}")
+                logging.error(f"Database error: {e}")
+                raise
+
+    cursor.close()
     return results
 
 
-def default_serializer(obj):
-    if isinstance(obj, Decimal):
-        return float(obj)  # Convert Decimal to float
-    if isinstance(obj, Row):
-        return dict(obj.items())  # Convert Row to dictionary
-    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+def export_to_json(data, output_files) -> None:
+    def default_serializer(obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        raise TypeError(
+            f"Object of type {obj.__class__.__name__} is not JSON serializable"
+        )
 
-
-def export_to_json(data, output_files):
-    serialized_data = []
     for result, output_file in zip(data, output_files):
-        serialized_result = []
-        for row in result:
-            serialized_row = default_serializer(row)
-            serialized_result.append(serialized_row)
-        serialized_data.append(serialized_result)
         with open(output_file, "w", encoding="utf-8") as file:
-            json.dump(serialized_result, file, ensure_ascii=False, indent=4)
+            json.dump(
+                result, file, ensure_ascii=False, indent=4, default=default_serializer
+            )
 
 
-def export_to_xml(data, output_files):
+def export_to_xml(data, output_files) -> None:
     for table, output_file in zip(data, output_files):
         root = BeautifulSoup(features="xml")
         xml_data = root.new_tag("data")
 
         for row in table:
             row_tag = root.new_tag("row")
-            for col, value in row.items():
-                col_tag = root.new_tag(str(col))
+            for col, value in enumerate(row):
+                col_tag = root.new_tag(f"col_{col}")
                 col_tag.string = str(value)
                 row_tag.append(col_tag)
             xml_data.append(row_tag)
@@ -95,33 +85,23 @@ def export_to_xml(data, output_files):
             file.write(str(root.prettify()))
 
 
-def export_result(format, sql_file):
-    if format.lower() == "json":
+def export_result(format, sql_file, connection) -> None:
+    if format == "json":
         output_files_json = [
             "output_1.json",
             "output_2.json",
             "output_3.json",
             "output_4.json",
         ]
-        results = execute_sql_file(sql_file)
-        results_as_dicts = []
-        for res in results:
-            result_dicts = [dict(row.items()) for row in res]
-            results_as_dicts.append(result_dicts)
-        export_to_json(results_as_dicts, output_files_json)
-        logging.info(f"Data exported to '{format}' format successfully")
+        results = execute_sql_file(sql_file, connection)
+        export_to_json(results, output_files_json)
 
-    elif format.lower() == "xml":
+    elif format == "xml":
         output_files_xml = [
             "output_1.xml",
             "output_2.xml",
             "output_3.xml",
             "output_4.xml",
         ]
-        results = execute_sql_file(sql_file)
+        results = execute_sql_file(sql_file, connection)
         export_to_xml(results, output_files_xml)
-        logging.info(f"Data exported to '{format}' format successfully")
-
-    else:
-        logging.error("Unknown file format")
-        print("Unknown file format")

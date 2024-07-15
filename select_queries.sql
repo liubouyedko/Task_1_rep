@@ -1,6 +1,6 @@
-SELECT 
-        room.id, 
-        room.name, 
+SELECT
+        room.id,
+        room.name,
         COUNT(student.id)
 FROM room
 LEFT JOIN student
@@ -9,7 +9,7 @@ GROUP BY room.id
 ORDER BY room.id ASC;
 
 
-SELECT 
+SELECT
         room.id,
         room.name,
         ROUND(AVG(date_part('year', age(current_date, student.birthday)))::numeric, 2) AS average_age
@@ -20,15 +20,15 @@ ORDER BY average_age
 LIMIT 5;
 
 
-SELECT 
-        room.id, 
-        room.name, 
+SELECT
+        room.id,
+        room.name,
         ROUND(
             MAX(
                 EXTRACT(year FROM age(student.birthday)) +
                 EXTRACT(month FROM age(student.birthday)) / 12.0 +
                 EXTRACT(day FROM age(student.birthday)) / 365.25
-            ) - 
+            ) -
             MIN(
                 EXTRACT(year FROM age(student.birthday)) +
                 EXTRACT(month FROM age(student.birthday)) / 12.0 +
@@ -42,7 +42,7 @@ HAVING MAX(
             EXTRACT(year FROM age(student.birthday)) +
             EXTRACT(month FROM age(student.birthday)) / 12.0 +
             EXTRACT(day FROM age(student.birthday)) / 365.25
-        ) - 
+        ) -
         MIN(
             EXTRACT(year FROM age(student.birthday)) +
             EXTRACT(month FROM age(student.birthday)) / 12.0 +

@@ -1,5 +1,7 @@
+psycopg2
 beautifulsoup4
 lxml
 python-dotenv
-sqlalchemy
-pg8000
+black
+flake8
+isort

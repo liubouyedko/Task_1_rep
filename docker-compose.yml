@@ -5,15 +5,24 @@ services:
   db:
     image: postgres:latest
     env_file:
-      - "config.env"
+      - ".env"
     environment:
-      POSTGRES_DB: $(DB_NAME)
-      POSTGRES_USER: $(DB_USER)
-      POSTGRES_PASSWORD: $(DB_PASSWORD)
+      POSTGRES_DB: db_students
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty123
+      DB_HOST: "127.0.0.1"
+      DB_PORT: "5432"
+      JSON_FILE_PATH_STUDENTS: "students.json"
+      JSON_FILE_PATH_ROOMS: "rooms.json"
+      SQL_FILE: "select_queries.sql"
+    #   POSTGRES_DB: ${DB_NAME}
+    #   POSTGRES_USER: ${DB_USER}
+    #   POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     networks:
       - networkName
+
   app:
     build:
       context: .
@@ -21,7 +30,7 @@ services:
     depends_on:
       - db
     env_file:
-      - "config.env"
+      - ".env"
     volumes:
       - .:/app
     command: python main.py
