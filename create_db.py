@@ -50,7 +50,7 @@ class DatabaseManager:
         if connection is None or connection.closed:
             try:
                 connection = psycopg2.connect(
-                    database=self.dbname,
+                    dbname=self.dbname,
                     user=self.user,
                     password=self.password,
                     host=self.host,
@@ -66,7 +66,7 @@ class DatabaseManager:
             except (OperationalError, InterfaceError):
                 try:
                     connection = psycopg2.connect(
-                        database=self.dbname,
+                        dbname=self.dbname,
                         user=self.user,
                         password=self.password,
                         host=self.host,

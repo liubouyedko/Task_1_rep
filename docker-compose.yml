@@ -10,23 +10,24 @@ services:
       POSTGRES_DB: db_students
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: qwerty123
-      DB_HOST: "127.0.0.1"
+      DB_HOST: "db"
       DB_PORT: "5432"
-      JSON_FILE_PATH_STUDENTS: "students.json"
-      JSON_FILE_PATH_ROOMS: "rooms.json"
+      # JSON_FILE_PATH_STUDENTS: ${JSON_FILE_PATH_STUDENTS}
+      # JSON_FILE_PATH_ROOMS: ${JSON_FILE_PATH_ROOMS}
       SQL_FILE: "select_queries.sql"
     #   POSTGRES_DB: ${DB_NAME}
     #   POSTGRES_USER: ${DB_USER}
     #   POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
-    networks:
-      - networkName
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      JSON_FILE_PATH_STUDENTS: ${JSON_FILE_PATH_STUDENTS}
+      JSON_FILE_PATH_ROOMS: ${JSON_FILE_PATH_ROOMS}
     depends_on:
       - db
     env_file:
@@ -36,9 +37,3 @@ services:
     command: python main.py
     tty: true
     stdin_open: true
-    networks:
-      - networkName
-
-networks:
-  networkName:
-    name: networkName

@@ -1,6 +1,8 @@
 import logging
 import os
 
+# import sys
+
 from dotenv import load_dotenv
 
 from create_db import DatabaseManager, DataLoader
@@ -26,8 +28,11 @@ def main() -> None:
     password = os.getenv("DB_PASSWORD")
     host = os.getenv("DB_HOST")
     port = os.getenv("DB_PORT")
+    json_file_path_students = os.getenv("JSON_FILE_PATH_STUDENTS")
+    json_file_path_rooms = os.getenv("JSON_FILE_PATH_ROOMS")
+    format = os.getenv("OUTPUT_FILE_FORMAT")
 
-    print(dbname, user, password, host, port)
+    print(host, port)
 
     db_manager = DatabaseManager(dbname, user, password, host, port)
     data_loader = DataLoader(db_manager)
@@ -42,26 +47,17 @@ def main() -> None:
     #     print("Enter the path to your json file (students.json):")
     #     json_file_path_students = input()
     # else:
-    #     json_file_path_students = sys.argv[1]
 
     # if len(sys.argv) < 3:
     #     print("Enter the path to your json file (rooms.json):")
     #     json_file_path_rooms = input()
     # else:
-    #     json_file_path_rooms = sys.argv[2]
 
-    # json_file_path_rooms =
-    # input("Enter the path to your json file (rooms.json): ")
-
-    json_file_path_students = "students.json"
-    json_file_path_rooms = "rooms.json"
+    # json_file_path_students = "students.json"
+    # json_file_path_rooms = "rooms.json"
 
     data_loader.load_data_from_json(connection, json_file_path_rooms, "room")
     data_loader.load_data_from_json(connection, json_file_path_students, "student")
-
-    # format = input("Enter a file format for data export(json/xml): ")
-
-    format = "json"
 
     data_exporter = DataExporter(connection)
     data_exporter.export_result(format, sql_file)
