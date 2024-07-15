@@ -3,14 +3,13 @@ import os
 
 from dotenv import load_dotenv
 
-from create_db import (create_connection, create_database, create_tables,
-                       load_data_from_json)
-from execute_queries import export_result
+from create_db import DatabaseManager, DataLoader
+from execute_queries import DataExporter
 
 dotenv_path = ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
-# logging config
+# Logging configurations
 logging.basicConfig(
     level=logging.INFO,
     filename="py_log.log",
@@ -20,6 +19,8 @@ logging.basicConfig(
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+
     dbname = os.getenv("DB_NAME")
     user = os.getenv("DB_USER")
     password = os.getenv("DB_PASSWORD")
@@ -28,10 +29,12 @@ def main() -> None:
 
     print(dbname, user, password, host, port)
 
-    logging.basicConfig(level=logging.INFO)
-    create_database()
-    create_tables()
-    connection = create_connection()
+    db_manager = DatabaseManager(dbname, user, password, host, port)
+    data_loader = DataLoader(db_manager)
+
+    db_manager.create_database()
+    db_manager.create_tables()
+    connection = db_manager.create_connection()
 
     sql_file = os.getenv("SQL_FILE")
 
@@ -53,13 +56,15 @@ def main() -> None:
     json_file_path_students = "students.json"
     json_file_path_rooms = "rooms.json"
 
-    load_data_from_json(connection, json_file_path_rooms, "room")
-    load_data_from_json(connection, json_file_path_students, "student")
+    data_loader.load_data_from_json(connection, json_file_path_rooms, "room")
+    data_loader.load_data_from_json(connection, json_file_path_students, "student")
 
     # format = input("Enter a file format for data export(json/xml): ")
 
-    format = "xml"
-    export_result(format, sql_file, connection)
+    format = "json"
+
+    data_exporter = DataExporter(connection)
+    data_exporter.export_result(format, sql_file)
 
     connection.close()
 
