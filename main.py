@@ -34,7 +34,7 @@ def main() -> None:
 
     print(host, port)
 
-    db_manager = DatabaseManager(dbname, user, password, host, port)
+    db_manager = DatabaseManager()
     data_loader = DataLoader(db_manager)
 
     db_manager.create_database()

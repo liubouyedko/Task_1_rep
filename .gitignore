@@ -4,4 +4,3 @@ __pycache__
 *.env
 myenv
 postgres
-test_connect_to_db.py

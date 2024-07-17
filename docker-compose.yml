@@ -7,17 +7,17 @@ services:
     env_file:
       - ".env"
     environment:
-      POSTGRES_DB: db_students
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: qwerty123
-      DB_HOST: "db"
-      DB_PORT: "5432"
-      # JSON_FILE_PATH_STUDENTS: ${JSON_FILE_PATH_STUDENTS}
-      # JSON_FILE_PATH_ROOMS: ${JSON_FILE_PATH_ROOMS}
-      SQL_FILE: "select_queries.sql"
-    #   POSTGRES_DB: ${DB_NAME}
-    #   POSTGRES_USER: ${DB_USER}
-    #   POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      SQL_FILE: ${SQL_FILE}
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - "5432:5432"
 

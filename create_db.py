@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-import sqlite3
+import pandas as pd
 from typing import Optional
 
 import psycopg2
@@ -13,9 +13,9 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, connection as pg_con
 connection = None
 
 
-# Load environment variables
-dotenv_path = ".env"
-load_dotenv(dotenv_path=dotenv_path)
+# # Load environment variables
+# dotenv_path = ".env"
+# load_dotenv(dotenv_path=dotenv_path)
 
 
 # Logging configurations
@@ -27,16 +27,34 @@ logging.basicConfig(
 )
 
 
-# Database configurations
-dbname = os.getenv("DB_NAME")
-user = os.getenv("DB_USER")
-password = os.getenv("DB_PASSWORD")
-host = os.getenv("DB_HOST")
-port = os.getenv("DB_PORT")
+# # Database configurations
+# dbname = os.getenv("DB_NAME")
+# user = os.getenv("DB_USER")
+# password = os.getenv("DB_PASSWORD")
+# host = os.getenv("DB_HOST")
+# port = os.getenv("DB_PORT")
 
 
 class DatabaseManager:
-    def __init__(self, dbname, user, password, host, port):
+    # def __init__(self, dbname, user, password, host, port):
+    #     self.dbname = dbname
+    #     self.user = user
+    #     self.password = password
+    #     self.host = host
+    #     self.port = port
+    #     self.connection: Optional[pg_connection] = None
+
+    def __init__(self) -> None:
+        dotenv_path = ".env"
+        load_dotenv(dotenv_path=dotenv_path)
+
+        # Database configurations
+        dbname = os.getenv("DB_NAME")
+        user = os.getenv("DB_USER")
+        password = os.getenv("DB_PASSWORD")
+        host = os.getenv("DB_HOST")
+        port = os.getenv("DB_PORT")
+
         self.dbname = dbname
         self.user = user
         self.password = password
@@ -45,7 +63,7 @@ class DatabaseManager:
         self.connection: Optional[pg_connection] = None
 
     # Creating connection if not exists
-    def create_connection(self) -> sqlite3.Connection:
+    def create_connection(self) -> psycopg2.extensions.connection:
         global connection
         if connection is None or connection.closed:
             try:
@@ -79,7 +97,9 @@ class DatabaseManager:
                     )
         return connection
 
-    def execute_sql_file(self, filename: str, connection) -> None:
+    def execute_sql_file(
+        self, filename: str, connection
+    ) -> psycopg2.extensions.connection:
         with open(filename, "r") as file:
             sql = file.read()
         cursor = connection.cursor()
@@ -87,7 +107,7 @@ class DatabaseManager:
         cursor.close()
         return connection
 
-    def create_database(self) -> None:
+    def create_database(self) -> psycopg2.extensions.cursor:
         conn = psycopg2.connect(
             dbname=self.dbname,
             user=self.user,
@@ -106,8 +126,9 @@ class DatabaseManager:
 
         cursor.close()
         conn.close()
+        return cursor
 
-    def create_tables(self) -> None:
+    def create_tables(self) -> bool:
         conn = psycopg2.connect(
             dbname=self.dbname,
             user=self.user,
@@ -121,21 +142,22 @@ class DatabaseManager:
             DatabaseManager.execute_sql_file(self, "db_schema.sql", conn)
             conn.commit()
             logging.info("Tables created successfully.")
+            success = True
         except psycopg2.errors.UndefinedTable as e:
+            success = False
             conn.rollback()
             logging.error(f"Error creating tables: {e}")
 
         cursor.close()
         conn.close()
+        return success
 
 
 class DataLoader:
-    def __init__(self, db_manager: DatabaseManager):
+    def __init__(self, db_manager: DatabaseManager) -> None:
         self.db_manager = db_manager
 
-    def load_data_from_json(
-        self, connection, json_file_path: str, table_name: str
-    ) -> None:
+    def load_data_from_json(self, connection, json_file_path, table_name):
         if connection is None:
             logging.error(
                 f"Failed to load data into {table_name}: No connection to the DB."
@@ -153,18 +175,19 @@ class DataLoader:
                         f"ON CONFLICT (id) DO NOTHING"
                     )
 
+                    records = [
+                        (
+                            record.get("birthday", None),
+                            record.get("id", None),
+                            record.get("name", None),
+                            record.get("room", None),
+                            record.get("sex", None),
+                        )
+                        for record in data
+                    ]
+
                     with connection.cursor() as cursor:
-                        for record in data:
-                            cursor.execute(
-                                insert_query,
-                                (
-                                    record.get("birthday", None),
-                                    record.get("id", None),
-                                    record.get("name", None),
-                                    record.get("room", None),
-                                    record.get("sex", None),
-                                ),
-                            )
+                        cursor.executemany(insert_query, records)
                         connection.commit()
 
                 elif table_name == "room":
@@ -174,16 +197,14 @@ class DataLoader:
                         f"ON CONFLICT (id) DO NOTHING"
                     )
 
+                    records = [
+                        (record.get("id", None), record.get("name", None))
+                        for record in data
+                    ]
+
                     with connection.cursor() as cursor:
-                        for record in data:
-                            cursor.execute(
-                                insert_query,
-                                (
-                                    record.get("id", None),
-                                    record.get("name", None),
-                                ),
-                            )
+                        cursor.executemany(insert_query, records)
                         connection.commit()
 
         except IOError as e:
-            logging.exception(f"'{e}' occured during oppening {json_file_path}")
+            logging.exception(f"'{e}' occurred during opening {json_file_path}")
