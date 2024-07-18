@@ -29,12 +29,12 @@ class DataExporter:
             sql = file.read()
 
         cursor = self.connection.cursor()
-        queries = sql.split(";")  # Разделение запросов по комментариям
+        queries = sql.split(";")
         results = []
 
         for query in queries:
             query = query.strip()
-            if query:  # Проверка, что запрос не пустой
+            if query:
                 try:
                     cursor.execute(query)
                     results.append(cursor.fetchall())
