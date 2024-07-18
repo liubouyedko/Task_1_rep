@@ -1,4 +1,6 @@
 import unittest
+import psycopg2
+import logging
 from unittest.mock import patch, MagicMock, mock_open, call
 import unittest.mock
 from execute_queries import DataExporter
@@ -47,6 +49,34 @@ class TestDataExporter(unittest.TestCase):
         ]
         self.assertEqual(actual_queries, expected_queries)
         self.cursor_mock.close.assert_called_once()
+
+    # -----------------------------------------------------------------
+    # Test Creating Indexes from sql File (DataExporter -> create_indexes_from_sql_file())
+    @patch("builtins.open", new_callable=MagicMock)
+    def test_create_indexes_from_sql_file(self, mock_open):
+        sql_content = """
+        CREATE INDEX IF NOT EXISTS idx_student_id ON student(id);
+        CREATE INDEX IF NOT EXISTS idx_room_name ON room(name);
+        """
+        mock_open.return_value.__enter__.return_value.read.return_value = sql_content
+
+        obj = DataExporter(self.connection_mock)
+        obj.create_indexes_from_sql_file("test_file.sql")
+
+        expected_queries = [
+            "CREATE INDEX IF NOT EXISTS idx_student_id ON student(id)",
+            "CREATE INDEX IF NOT EXISTS idx_room_name ON room(name)",
+        ]
+        actual_execute_calls = [
+            call[0][0] for call in self.cursor_mock.execute.call_args_list
+        ]
+        self.assertEqual(actual_execute_calls, expected_queries)
+        self.connection_mock.commit.assert_called()
+
+        self.cursor_mock.execute.side_effect = psycopg2.Error("Test error")
+        with self.assertRaises(psycopg2.Error):
+            obj.create_indexes_from_sql_file("test_file.sql")
+        self.assertTrue(logging.getLogger().error)
 
     # -----------------------------------------------------------------
     # Test Executing sql File if Error (DataExporter -> execute_sql_file())

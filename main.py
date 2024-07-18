@@ -23,9 +23,6 @@ logging.basicConfig(
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
 
-    dbname = os.getenv("DB_NAME")
-    user = os.getenv("DB_USER")
-    password = os.getenv("DB_PASSWORD")
     host = os.getenv("DB_HOST")
     port = os.getenv("DB_PORT")
     json_file_path_students = os.getenv("JSON_FILE_PATH_STUDENTS")
@@ -60,6 +57,7 @@ def main() -> None:
     data_loader.load_data_from_json(connection, json_file_path_students, "student")
 
     data_exporter = DataExporter(connection)
+    data_exporter.create_indexes_from_sql_file("create_indexes.sql")
     data_exporter.export_result(format, sql_file)
 
     connection.close()

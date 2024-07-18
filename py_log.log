@@ -1,0 +1,6 @@
+31064 2024-07-18 16:59:21,171 INFO Database 'db_students' already exists.
+31064 2024-07-18 16:59:21,209 INFO Tables created successfully.
+31064 2024-07-18 16:59:21,245 INFO Connection to PostgreSQL DB db_students successful
+31064 2024-07-18 16:59:22,366 INFO Index created
+31064 2024-07-18 16:59:22,366 INFO Index created
+31064 2024-07-18 16:59:22,366 INFO Index created
