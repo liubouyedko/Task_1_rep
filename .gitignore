@@ -1,6 +1,6 @@
 virtual_space/
 __pycache__
-*.log
+py_log.log
 *.env
 myenv
 postgres

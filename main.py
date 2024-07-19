@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 
@@ -5,9 +6,6 @@ from dotenv import load_dotenv
 
 from create_db import DatabaseManager, DataLoader
 from execute_queries import DataExporter
-
-# import sys
-
 
 dotenv_path = ".env"
 load_dotenv(dotenv_path=dotenv_path)
@@ -21,16 +19,10 @@ logging.basicConfig(
 )
 
 
-def main() -> None:
-    logging.basicConfig(level=logging.INFO)
-
-    host = os.getenv("DB_HOST")
-    port = os.getenv("DB_PORT")
-    json_file_path_students = os.getenv("JSON_FILE_PATH_STUDENTS")
-    json_file_path_rooms = os.getenv("JSON_FILE_PATH_ROOMS")
-    format = os.getenv("OUTPUT_FILE_FORMAT")
-
-    print(host, port)
+def main(students_file_path: str, rooms_file_path: str, output_format: str) -> None:
+    print(f"Argument 1: {students_file_path}")
+    print(f"Argument 2: {rooms_file_path}")
+    print(f"Argument 3: {output_format}")
 
     db_manager = DatabaseManager()
     data_loader = DataLoader(db_manager)
@@ -41,28 +33,23 @@ def main() -> None:
 
     sql_file = os.getenv("SQL_FILE")
 
-    # if len(sys.argv) < 2:
-    #     print("Enter the path to your json file (students.json):")
-    #     json_file_path_students = input()
-    # else:
-
-    # if len(sys.argv) < 3:
-    #     print("Enter the path to your json file (rooms.json):")
-    #     json_file_path_rooms = input()
-    # else:
-
-    # json_file_path_students = "students.json"
-    # json_file_path_rooms = "rooms.json"
-
-    data_loader.load_data_from_json(connection, json_file_path_rooms, "room")
-    data_loader.load_data_from_json(connection, json_file_path_students, "student")
+    data_loader.load_data_from_json(connection, rooms_file_path, "room")
+    data_loader.load_data_from_json(connection, students_file_path, "student")
 
     data_exporter = DataExporter(connection)
     data_exporter.create_indexes_from_sql_file("create_indexes.sql")
-    data_exporter.export_result(format, sql_file)
+    data_exporter.export_result(output_format, sql_file)
 
     connection.close()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Python script with arguments")
+
+    parser.add_argument("students_file_path", type=str, help="Student file path")
+    parser.add_argument("rooms_file_path", type=str, help="Rooms file path")
+    parser.add_argument("output_format", type=str, help="Output file format")
+
+    args = parser.parse_args()
+
+    main(args.students_file_path, args.rooms_file_path, args.output_format)

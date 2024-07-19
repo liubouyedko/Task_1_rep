@@ -25,15 +25,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      JSON_FILE_PATH_STUDENTS: ${JSON_FILE_PATH_STUDENTS}
-      JSON_FILE_PATH_ROOMS: ${JSON_FILE_PATH_ROOMS}
+    # environment:
+    #   JSON_FILE_PATH_STUDENTS: ${JSON_FILE_PATH_STUDENTS}
+    #   JSON_FILE_PATH_ROOMS: ${JSON_FILE_PATH_ROOMS}
     depends_on:
       - db
     env_file:
       - ".env"
     volumes:
       - .:/app
-    command: python main.py
+    command: [ "students.json", "rooms.json", "json" ]
     tty: true
     stdin_open: true
