@@ -20,6 +20,22 @@ logging.basicConfig(
 
 
 def main(students_file_path: str, rooms_file_path: str, output_format: str) -> None:
+    """
+    Main function that initializes the database, loads data from JSON files into the database,
+    and exports the results to the specified format.
+
+    This function performs the following steps:
+    1. Initializes the `DatabaseManager` and `DataLoader` instances.
+    2. Creates the database and tables.
+    3. Loads data from the provided JSON files into the specified database tables.
+    4. Creates indexes in the database based on a provided SQL file.
+    5. Exports query results to JSON or XML format based on the specified output format.
+
+    Args:
+        students_file_path (str): The path to the JSON file containing student data.
+        rooms_file_path (str): The path to the JSON file containing room data.
+        output_format (str): The format for exporting results, either "json" or "xml".
+    """
     print(f"Argument 1: {students_file_path}")
     print(f"Argument 2: {rooms_file_path}")
     print(f"Argument 3: {output_format}")
@@ -44,6 +60,14 @@ def main(students_file_path: str, rooms_file_path: str, output_format: str) -> N
 
 
 if __name__ == "__main__":
+    """
+    Entry point for the script. Parses command-line arguments and invokes the `main` function.
+
+    Command-line arguments:
+        - students_file_path: The path to the JSON file containing student data.
+        - rooms_file_path: The path to the JSON file containing room data.
+        - output_format: The format for exporting results, either "json" or "xml".
+    """
     parser = argparse.ArgumentParser(description="Python script with arguments")
 
     parser.add_argument("students_file_path", type=str, help="Student file path")

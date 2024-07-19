@@ -25,9 +25,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # environment:
-    #   JSON_FILE_PATH_STUDENTS: ${JSON_FILE_PATH_STUDENTS}
-    #   JSON_FILE_PATH_ROOMS: ${JSON_FILE_PATH_ROOMS}
     depends_on:
       - db
     env_file:

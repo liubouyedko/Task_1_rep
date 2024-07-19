@@ -10,24 +10,48 @@ from execute_queries import DataExporter
 
 # ---------------------------------------------------------------------
 class TestDataExporter(unittest.TestCase):
+    """
+    Test suite for the `DataExporter` class.
+
+    This suite tests various functionalities of the `DataExporter` class,
+    including SQL file execution, index creation, data export to JSON and XML,
+    and result export based on format.
+    """
+
     # -----------------------------------------------------------------
-    # Setting Up
     def setUp(self):
+        """
+        Set up a `DataExporter` instance with a mock database connection
+        for testing.
+
+        Creates a mock connection and cursor, and initializes a `DataExporter`
+        instance with the mock connection.
+        """
         self.connection_mock = MagicMock()
         self.cursor_mock = MagicMock()
         self.connection_mock.cursor.return_value = self.cursor_mock
         self.exporter = DataExporter(self.connection_mock)
 
     # -----------------------------------------------------------------
-    # Test Constructor (DataExporter -> __init__())
     def test_init(self):
+        """
+        Test the constructor of the `DataExporter` class.
+
+        Verifies that the `DataExporter` instance is correctly initialized
+        with the provided database connection.
+        """
         exporter = DataExporter(self.connection_mock)
         self.assertEqual(exporter.connection, self.connection_mock)
 
     # -----------------------------------------------------------------
-    # Test Executing SQL File (DataExporter -> execute_sql_file())
     @patch("builtins.open", new_callable=MagicMock)
     def test_execute_sql_file(self, mock_open):
+        """
+        Test the `execute_sql_file` method of the `DataExporter` class.
+
+        Verifies that SQL commands in the provided file are executed correctly
+        and the results are returned in the specified format (dictionary).
+        """
         sql_content = "SELECT * FROM test_table1; SELECT * FROM test_table2;"
         mock_open.return_value.__enter__.return_value.read.return_value = sql_content
         self.cursor_mock.description = [("col1",), ("col2",)]
@@ -68,9 +92,14 @@ class TestDataExporter(unittest.TestCase):
         self.cursor_mock.close.assert_called_once()
 
     # -----------------------------------------------------------------
-    # Test Creating Indexes from SQL File (DataExporter -> create_indexes_from_sql_file())
     @patch("builtins.open", new_callable=MagicMock)
     def test_create_indexes_from_sql_file(self, mock_open):
+        """
+        Test the `create_indexes_from_sql_file` method of the `DataExporter` class.
+
+        Verifies that index creation queries from the SQL file are executed
+        correctly and the connection is committed. Also tests error handling.
+        """
         sql_content = """
         CREATE INDEX IF NOT EXISTS idx_student_id ON student(id);
         CREATE INDEX IF NOT EXISTS idx_room_name ON room(name);
@@ -96,16 +125,14 @@ class TestDataExporter(unittest.TestCase):
         self.assertTrue(logging.getLogger().error)
 
     # -----------------------------------------------------------------
-    # Test Executing SQL File if Error (DataExporter -> execute_sql_file())
-    @patch("builtins.open", new_callable=MagicMock)
-    def test_execute_sql_file_with_error(self, mock_open):
-        sql_content = "SELECT * FROM test_table; INVALID SQL QUERY;"
-        mock_open.return_value.__enter__.return_value.read.return_value = sql_content
-
-    # -----------------------------------------------------------------
-    # Test Exporting Data to JSON (DataExporter -> export_to_json())
     @patch("builtins.open", new_callable=mock_open)
     def test_export_to_json(self, mock_open):
+        """
+        Test the `export_to_json` method of the `DataExporter` class.
+
+        Verifies that data is correctly exported to a JSON file and
+        the written data matches the expected format.
+        """
         data = [{"key": "value"}]
         output_files = ["test.json"]
 
@@ -125,9 +152,14 @@ class TestDataExporter(unittest.TestCase):
         mock_open().write.assert_has_calls(expected_calls, any_order=False)
 
     # -----------------------------------------------------------------
-    # Test Exporting Data to XML (DataExporter -> export_to_xml())
     @patch("builtins.open", new_callable=mock_open)
     def test_export_to_xml(self, mock_open):
+        """
+        Test the `export_to_xml` method of the `DataExporter` class.
+
+        Verifies that data is correctly exported to an XML file and
+        the written XML matches the expected format.
+        """
         data = [
             (["id", "name", "student_count"], [(1, "Room #1", 10), (2, "Room #2", 5)])
         ]
@@ -168,13 +200,18 @@ class TestDataExporter(unittest.TestCase):
         self.assertEqual(written_data.strip(), expected_xml.strip())
 
     # -----------------------------------------------------------------
-    # Test Exporting Result (DataExporter -> export_result())
     @patch("execute_queries.DataExporter.export_to_json")
     @patch("execute_queries.DataExporter.export_to_xml")
     @patch("execute_queries.DataExporter.execute_sql_file")
     def test_export_result(
         self, mock_execute_sql_file, mock_export_to_xml, mock_export_to_json
     ):
+        """
+        Test the `export_result` method of the `DataExporter` class.
+
+        Verifies that the result of executing an SQL file is exported in the
+        requested format (JSON or XML) to the specified output files.
+        """
         sql_file = "test_file.sql"
         expected_result = [{"key": "value"}]
         mock_execute_sql_file.return_value = expected_result
@@ -202,8 +239,14 @@ class TestDataExporter(unittest.TestCase):
         mock_export_to_xml.assert_called_once_with(expected_result, output_files_xml)
 
     # ----------------------------------------------------------------
-    # Test Convering to XML (DataExporter -> convert_to_xml())
     def test_convert_to_xml(self):
+        """
+        Test the `convert_to_xml` method of the `DataExporter` class.
+
+        Verifies that `convert_to_xml` correctly converts query results into
+        the expected XML format. Compares the generated XML with the expected
+        XML output for given column names and rows.
+        """
         columns = ["id", "name", "student_count"]
         rows = [(1, "Room #1", 10), (2, "Room #2", 5)]
         results = [(columns, rows)]

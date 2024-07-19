@@ -8,11 +8,21 @@ from create_db import DatabaseManager, DataLoader
 
 # ---------------------------------------------------------------------
 class TestDatabaseManager(unittest.TestCase):
+    """
+    Test suite for the `DatabaseManager` class.
+
+    This suite tests various functionalities of the `DatabaseManager` class, including
+    its constructor, connection handling, SQL file execution, database creation, and table creation.
+    """
+
     # -----------------------------------------------------------------
-    # Test Constructor (DatabaseManager -> __init__())
     @patch("dotenv.load_dotenv")
     @patch("os.getenv")
     def test_constructor_database_manager(self, mock_getenv, mock_load_dotenv):
+        """
+        Test the constructor of the `DatabaseManager` class to ensure that it correctly
+        initializes its attributes with values from environment variables.
+        """
         mock_getenv.side_effect = lambda x: {
             "DB_NAME": "test_db",
             "DB_USER": "test_user",
@@ -30,10 +40,13 @@ class TestDatabaseManager(unittest.TestCase):
         self.assertEqual(instance.port, "5432")
 
     # -----------------------------------------------------------------
-    # Test Creating Connection (DatabaseManager -> create_connection())
     @patch("create_db.psycopg2.connect")
     @patch("create_db.os.getenv")
     def test_create_new_connection(self, mock_getenv, mock_connect):
+        """
+        Test the `create_connection` method of the `DatabaseManager` class to ensure that
+        it successfully creates a new database connection using the correct credentials.
+        """
         mock_getenv.side_effect = lambda key: {
             "DB_NAME": "test_db",
             "DB_USER": "test_user",
@@ -58,10 +71,13 @@ class TestDatabaseManager(unittest.TestCase):
         self.assertEqual(connection, mock_connection)
 
     # -----------------------------------------------------------------
-    # Test Executing SQL File (DatabaseManager -> execute_sql_file())
     @patch("create_db.load_dotenv")
     @patch("builtins.open", new_callable=MagicMock)
     def test_execute_sql_file(self, mock_open, mock_load_dotenv):
+        """
+        Test the `execute_sql_file` method of the `DatabaseManager` class to ensure that
+        it reads and executes SQL statements from a file correctly.
+        """
         mock_file = MagicMock()
         mock_file.read.return_value = "SELECT * FROM test_table;"
         mock_open.return_value.__enter__.return_value = mock_file
@@ -80,10 +96,13 @@ class TestDatabaseManager(unittest.TestCase):
         self.assertEqual(returned_connection, mock_connection)
 
     # -----------------------------------------------------------------
-    # Test Creating Database (DatabaseManager -> create_database())
     @patch("create_db.psycopg2.connect")
     @patch("create_db.os.getenv")
     def test_create_database(self, mock_getenv, mock_connect):
+        """
+        Test the `create_database` method of the `DatabaseManager` class to ensure that
+        it successfully creates a database using the provided credentials.
+        """
         mock_getenv.side_effect = lambda key: {
             "DB_NAME": "test_db",
             "DB_USER": "test_user",
@@ -113,11 +132,14 @@ class TestDatabaseManager(unittest.TestCase):
         mock_connection.close.assert_called_once()
 
     # -----------------------------------------------------------------
-    # Test Creating Tables (DatabaseManager -> create_tables())
     @patch("create_db.psycopg2.connect")
     @patch("create_db.DatabaseManager.execute_sql_file")
     @patch("create_db.os.getenv")
     def test_create_tables(self, mock_getenv, mock_execute_sql_file, mock_connect):
+        """
+        Test the `create_tables` method of the `DatabaseManager` class to ensure that
+        it correctly creates tables by executing SQL commands from a file.
+        """
         mock_getenv.side_effect = lambda key: {
             "DB_NAME": "test_db",
             "DB_USER": "test_user",
@@ -151,14 +173,28 @@ class TestDatabaseManager(unittest.TestCase):
 
 # --------------------------------------------------------------------
 class TestDataLoader(unittest.TestCase):
+    """
+    Test suite for the `DataLoader` class.
+
+    This suite tests the functionality of the `DataLoader` class, including data loading
+    from JSON files into database tables.
+    """
+
     # -----------------------------------------------------------------
-    # Setting Up
     def setUp(self):
+        """
+        Set up a `DataLoader` instance with a mock `DatabaseManager` for testing.
+        """
         self.db_manager = MagicMock()
 
     # -----------------------------------------------------------------
-    # Some Example Student Data for Testing
     def fix_data_students(self):
+        """
+        Provide example student data for testing.
+
+        Returns:
+            List[dict]: A list of dictionaries representing student data.
+        """
         return [
             {
                 "birthday": "1996-05-13T00:00:00.000000",
@@ -177,8 +213,13 @@ class TestDataLoader(unittest.TestCase):
         ]
 
     # -----------------------------------------------------------------
-    # Some Example Room Data for Testing
     def fix_data_rooms(self):
+        """
+        Provide example room data for testing.
+
+        Returns:
+            List[dict]: A list of dictionaries representing room data.
+        """
         return [
             {
                 "id": 1,
@@ -191,9 +232,14 @@ class TestDataLoader(unittest.TestCase):
         ]
 
     # -----------------------------------------------------------------
-    # Test Loading Data from students.json File (DataLoader -> load_data_from_json())
     @patch("builtins.open", new_callable=MagicMock)
     def test_load_data_from_json_student(self, mock_open):
+        """
+        Test the `load_data_from_json` method of the `DataLoader` class for loading student data.
+
+        Verifies that the method correctly reads student data from a JSON file and inserts
+        it into the database.
+        """
         connection_mock = MagicMock()
         cursor_mock = MagicMock()
         connection_mock.cursor.return_value.__enter__.return_value = cursor_mock
@@ -229,9 +275,14 @@ class TestDataLoader(unittest.TestCase):
         connection_mock.commit.assert_called_once()
 
     # -----------------------------------------------------------------
-    # Test Loading Data from rooms.json File (DataLoader -> load_data_from_json())
     @patch("builtins.open", new_callable=MagicMock)
     def test_load_data_from_json_room(self, mock_open):
+        """
+        Test the `load_data_from_json` method of the `DataLoader` class for loading room data.
+
+        Verifies that the method correctly reads room data from a JSON file and inserts
+        it into the database.
+        """
         connection_mock = MagicMock()
         cursor_mock = MagicMock()
         connection_mock.cursor.return_value.__enter__.return_value = cursor_mock

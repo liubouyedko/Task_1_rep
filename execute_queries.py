@@ -22,12 +22,60 @@ logging.basicConfig(
 
 
 class DataExporter:
+    """
+    A class responsible for exporting data from a PostgreSQL database to JSON and XML formats.
+
+    Attributes:
+        connection (psycopg2.extensions.connection): The database connection object used to execute SQL queries.
+
+    Methods:
+        execute_sql_file(sql_file: str, output_format: str = "dict") -> Union[List[List[dict]], List[Tuple[List[str], List[Tuple[Any, ...]]]]]:
+            Executes SQL queries from a file and returns the results in the specified format.
+
+        create_indexes_from_sql_file(sql_file: str) -> None:
+            Creates database indexes based on the SQL commands in the provided file.
+
+        export_to_json(data: List[Any], output_files: List[Any]) -> None:
+            Exports the given data to JSON format and writes it to specified output files.
+
+        export_to_xml(data: List[Tuple[List[str], List[Tuple[Any, ...]]]], output_files: List[Any]) -> None:
+            Exports the given data to XML format and writes it to specified output files.
+
+        export_result(format: str, sql_file: str) -> None:
+            Executes SQL queries from a file and exports the results to JSON or XML format based on the specified format.
+
+        convert_to_xml(results: List[Tuple[List[str], List[Tuple[Any, ...]]]]) -> str:
+            Converts the provided query results into an XML string.
+    """
+
     def __init__(self, connection):
+        """
+        Initializes the DataExporter with a database connection.
+
+        Args:
+            connection (psycopg2.extensions.connection): The database connection object.
+        """
         self.connection = connection
 
     def execute_sql_file(
         self, sql_file: str, output_format: str = "dict"
     ) -> Union[List[List[dict]], List[Tuple[List[str], List[Tuple[Any, ...]]]]]:
+        """
+        Executes SQL queries from a file and returns the results in the specified format.
+
+        This method reads SQL commands from the given file, executes them against the database, and formats the results
+        based on the provided output format. The results can be returned as a list of dictionaries or a list of tuples
+        depending on the output format.
+
+        Args:
+            sql_file (str): The path to the SQL file containing the queries to execute.
+            output_format (str, optional): The format for the results. Can be "dict" for a list of dictionaries or "xml"
+                for a list of tuples containing column names and rows. Defaults to "dict".
+
+        Returns:
+            Union[List[List[dict]], List[Tuple[List[str], List[Tuple[Any, ...]]]]]: The results of the executed SQL queries,
+                formatted according to the output format.
+        """
         with open(sql_file, "r") as file:
             sql = file.read()
 
@@ -55,6 +103,15 @@ class DataExporter:
         return results
 
     def create_indexes_from_sql_file(self, sql_file: str) -> None:
+        """
+        Creates database indexes based on the SQL commands in the provided file.
+
+        This method reads SQL commands from the specified file and executes them to create indexes in the database.
+        The connection to the database is used to execute these commands.
+
+        Args:
+            sql_file (str): The path to the SQL file containing the commands to create indexes.
+        """
         with open(sql_file, "r") as file:
             sql = file.read()
 
@@ -79,6 +136,17 @@ class DataExporter:
         cursor.close()
 
     def export_to_json(self, data: List[Any], output_files: List[Any]) -> None:
+        """
+        Exports the given data to JSON format and writes it to specified output files.
+
+        This method serializes the provided data into JSON format and writes it to the files specified in
+        `output_files`. The data is serialized using a custom serializer for `Decimal` objects.
+
+        Args:
+            data (List[Any]): The data to be exported to JSON format.
+            output_files (List[Any]): The list of file paths where the JSON data should be written.
+        """
+
         def default_serializer(obj):
             if isinstance(obj, Decimal):
                 return float(obj)
@@ -101,6 +169,17 @@ class DataExporter:
         data: List[Tuple[List[str], List[Tuple[Any, ...]]]],
         output_files: List[Any],
     ) -> None:
+        """
+        Exports the given data to XML format and writes it to specified output files.
+
+        This method converts the provided data into XML format using BeautifulSoup and writes the XML to
+        the files specified in `output_files`.
+
+        Args:
+            data (List[Tuple[List[str], List[Tuple[Any, ...]]]]): The data to be exported to XML format. Each item
+                in the list is a tuple containing column names and rows.
+            output_files (List[Any]): The list of file paths where the XML data should be written.
+        """
         for (columns, rows), output_file in zip(data, output_files):
             root = BeautifulSoup(features="xml")
             xml_data = root.new_tag("data")
@@ -119,6 +198,16 @@ class DataExporter:
                 file.write(str(root.prettify()))
 
     def export_result(self, format: str, sql_file: str) -> None:
+        """
+        Executes SQL queries from a file and exports the results to JSON or XML format based on the specified format.
+
+        This method calls `execute_sql_file` to execute the SQL queries from the provided file, then exports the
+        results to the specified format (either JSON or XML) using the appropriate export method.
+
+        Args:
+            format (str): The format to export the results to. Can be "json" or "xml".
+            sql_file (str): The path to the SQL file containing the queries to execute.
+        """
         if format == "json":
             output_files_json = [
                 "output_1.json",
@@ -142,6 +231,18 @@ class DataExporter:
     def convert_to_xml(
         self, results: List[Tuple[List[str], List[Tuple[Any, ...]]]]
     ) -> str:
+        """
+        Converts the provided query results into an XML string.
+
+        This method converts the query results into an XML representation using the ElementTree library.
+
+        Args:
+            results (List[Tuple[List[str], List[Tuple[Any, ...]]]]): The query results to be converted to XML. Each
+                item in the list is a tuple containing column names and rows.
+
+        Returns:
+            str: The XML representation of the query results.
+        """
         root = ET.Element("Results")
         for i, (columns, rows) in enumerate(results):
             query_element = ET.SubElement(root, f"Query_{i+1}")
