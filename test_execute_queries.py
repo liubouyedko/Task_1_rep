@@ -1,14 +1,16 @@
 import unittest
 import psycopg2
 import logging
-from unittest.mock import patch, MagicMock, mock_open, call
 import unittest.mock
+from unittest.mock import patch, MagicMock, mock_open, call
+import xml.etree.ElementTree as ET
 from execute_queries import DataExporter
 
 
 # ---------------------------------------------------------------------
 class TestDataExporter(unittest.TestCase):
     # -----------------------------------------------------------------
+    # Setting Up
     def setUp(self):
         self.connection_mock = MagicMock()
         self.cursor_mock = MagicMock()
@@ -22,11 +24,12 @@ class TestDataExporter(unittest.TestCase):
         self.assertEqual(exporter.connection, self.connection_mock)
 
     # -----------------------------------------------------------------
-    # Test Executing sql File (DataExporter -> execute_sql_file())
+    # Test Executing SQL File (DataExporter -> execute_sql_file())
     @patch("builtins.open", new_callable=MagicMock)
     def test_execute_sql_file(self, mock_open):
         sql_content = "SELECT * FROM test_table1; SELECT * FROM test_table2;"
         mock_open.return_value.__enter__.return_value.read.return_value = sql_content
+        self.cursor_mock.description = [("col1",), ("col2",)]
 
         expected_result_table1 = [
             ("row1_col1", "row1_col2"),
@@ -41,17 +44,30 @@ class TestDataExporter(unittest.TestCase):
             expected_result_table2,
         ]
 
-        results = self.exporter.execute_sql_file("test_path.sql")
-
-        expected_queries = ["SELECT * FROM test_table1", "SELECT * FROM test_table2"]
-        actual_queries = [
-            call[0][0] for call in self.cursor_mock.execute.call_args_list
+        expected_dict_result = [
+            [
+                {"col1": "row1_col1", "col2": "row1_col2"},
+                {"col1": "row2_col1", "col2": "row2_col2"},
+            ],
+            [
+                {"col1": "row1_col1", "col2": "row1_col2"},
+                {"col1": "row2_col1", "col2": "row2_col2"},
+            ],
         ]
-        self.assertEqual(actual_queries, expected_queries)
+
+        results = self.exporter.execute_sql_file("test_path.sql", "dict")
+
+        self.assertEqual(results, expected_dict_result)
+        self.cursor_mock.execute.assert_has_calls(
+            [
+                unittest.mock.call("SELECT * FROM test_table1"),
+                unittest.mock.call("SELECT * FROM test_table2"),
+            ]
+        )
         self.cursor_mock.close.assert_called_once()
 
     # -----------------------------------------------------------------
-    # Test Creating Indexes from sql File (DataExporter -> create_indexes_from_sql_file())
+    # Test Creating Indexes from SQL File (DataExporter -> create_indexes_from_sql_file())
     @patch("builtins.open", new_callable=MagicMock)
     def test_create_indexes_from_sql_file(self, mock_open):
         sql_content = """
@@ -79,14 +95,14 @@ class TestDataExporter(unittest.TestCase):
         self.assertTrue(logging.getLogger().error)
 
     # -----------------------------------------------------------------
-    # Test Executing sql File if Error (DataExporter -> execute_sql_file())
+    # Test Executing SQL File if Error (DataExporter -> execute_sql_file())
     @patch("builtins.open", new_callable=MagicMock)
     def test_execute_sql_file_with_error(self, mock_open):
         sql_content = "SELECT * FROM test_table; INVALID SQL QUERY;"
         mock_open.return_value.__enter__.return_value.read.return_value = sql_content
 
     # -----------------------------------------------------------------
-    # Test Exporting Data to json (DataExporter -> export_to_json())
+    # Test Exporting Data to JSON (DataExporter -> export_to_json())
     @patch("builtins.open", new_callable=mock_open)
     def test_export_to_json(self, mock_open):
         data = [{"key": "value"}]
@@ -108,22 +124,47 @@ class TestDataExporter(unittest.TestCase):
         mock_open().write.assert_has_calls(expected_calls, any_order=False)
 
     # -----------------------------------------------------------------
-    # Test Exporting Data to xml (DataExporter -> export_to_xml())
+    # Test Exporting Data to XML (DataExporter -> export_to_xml())
     @patch("builtins.open", new_callable=mock_open)
     def test_export_to_xml(self, mock_open):
-        data = [{"key": "value"}]
-        output_files = ["test.xml"]
+        data = [
+            (["id", "name", "student_count"], [(1, "Room #1", 10), (2, "Room #2", 5)])
+        ]
+        output_files = ["output_file.xml"]
 
         exporter = DataExporter(None)
         exporter.export_to_xml(data, output_files)
-        mock_open.assert_called_once_with("test.xml", "w", encoding="utf-8")
 
-        expected_call = [
-            call(
-                '<?xml version="1.0" encoding="utf-8"?>\n<data>\n <row>\n  <col_0>\n   k\n  </col_0>\n  <col_1>\n   e\n  </col_1>\n  <col_2>\n   y\n  </col_2>\n </row>\n</data>\n'
-            )
-        ]
-        mock_open.return_value.write.assert_has_calls(expected_call, any_order=False)
+        mock_open.assert_called_once_with("output_file.xml", "w", encoding="utf-8")
+        handle = mock_open()
+        written_data = handle.write.call_args[0][0]
+
+        expected_xml = """<?xml version="1.0" encoding="utf-8"?>
+<data>
+ <row>
+  <id>
+   1
+  </id>
+  <name>
+   Room #1
+  </name>
+  <student_count>
+   10
+  </student_count>
+ </row>
+ <row>
+  <id>
+   2
+  </id>
+  <name>
+   Room #2
+  </name>
+  <student_count>
+   5
+  </student_count>
+ </row>
+</data>"""
+        self.assertEqual(written_data.strip(), expected_xml.strip())
 
     # -----------------------------------------------------------------
     # Test Exporting Result (DataExporter -> export_result())
@@ -146,7 +187,7 @@ class TestDataExporter(unittest.TestCase):
         ]
         self.exporter.export_result(format_j, sql_file)
 
-        mock_execute_sql_file.assert_called_once_with(sql_file)
+        mock_execute_sql_file.assert_called_once_with(sql_file, "dict")
         mock_export_to_json.assert_called_once_with(expected_result, output_files_json)
 
         format_x = "xml"
@@ -158,6 +199,18 @@ class TestDataExporter(unittest.TestCase):
         ]
         self.exporter.export_result(format_x, sql_file)
         mock_export_to_xml.assert_called_once_with(expected_result, output_files_xml)
+
+    # ----------------------------------------------------------------
+    # Test Convering to XML (DataExporter -> convert_to_xml())
+    def test_convert_to_xml(self):
+        columns = ["id", "name", "student_count"]
+        rows = [(1, "Room #1", 10), (2, "Room #2", 5)]
+        results = [(columns, rows)]
+
+        expected_xml = """<Results><Query_1><Row><id>1</id><name>Room #1</name><student_count>10</student_count></Row><Row><id>2</id><name>Room #2</name><student_count>5</student_count></Row></Query_1></Results>"""
+        result = self.exporter.convert_to_xml(results)
+
+        self.assertEqual(result.strip(), expected_xml.strip())
 
 
 if __name__ == "__main__":

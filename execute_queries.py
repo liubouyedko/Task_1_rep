@@ -127,7 +127,6 @@ class DataExporter:
                 "output_4.json",
             ]
             results = self.execute_sql_file(sql_file, "dict")
-            print(type(results))  # list
             self.export_to_json(results, output_files_json)
 
         elif format == "xml":

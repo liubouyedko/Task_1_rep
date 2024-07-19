@@ -154,7 +154,7 @@ class TestDatabaseManager(unittest.TestCase):
 # --------------------------------------------------------------------
 class TestDataLoader(unittest.TestCase):
     # -----------------------------------------------------------------
-    # Test Constructor (DataLoader -> __init__())
+    # Setting Up
     def setUp(self):
         self.db_manager = MagicMock()
 
