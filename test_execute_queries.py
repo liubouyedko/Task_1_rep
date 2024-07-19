@@ -1,9 +1,10 @@
-import unittest
-import psycopg2
 import logging
+import unittest
 import unittest.mock
-from unittest.mock import patch, MagicMock, mock_open, call
-import xml.etree.ElementTree as ET
+from unittest.mock import MagicMock, call, mock_open, patch
+
+import psycopg2
+
 from execute_queries import DataExporter
 
 

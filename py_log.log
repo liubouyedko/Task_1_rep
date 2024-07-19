@@ -1,4 +1,4 @@
-29396 2024-07-19 11:34:20,316 INFO Index created
-29396 2024-07-19 11:34:20,316 INFO Index created
-29396 2024-07-19 11:34:20,316 ERROR Error executing query: CREATE INDEX IF NOT EXISTS idx_student_id ON student(id)
-29396 2024-07-19 11:34:20,316 ERROR Database error: Test error
+31076 2024-07-19 11:49:14,547 INFO Index created
+31076 2024-07-19 11:49:14,547 INFO Index created
+31076 2024-07-19 11:49:14,547 ERROR Error executing query: CREATE INDEX IF NOT EXISTS idx_student_id ON student(id)
+31076 2024-07-19 11:49:14,547 ERROR Database error: Test error

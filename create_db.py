@@ -1,14 +1,13 @@
 import json
 import logging
 import os
-import pandas as pd
 from typing import Optional
 
 import psycopg2
 from dotenv import load_dotenv
 from psycopg2 import InterfaceError, OperationalError
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, connection as pg_connection
-
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from psycopg2.extensions import connection as pg_connection
 
 connection = None
 
@@ -74,7 +73,7 @@ class DatabaseManager:
                     host=self.host,
                     port=self.port,
                 )
-                logging.info(f"Connection to PostgreSQL DB {self.dbname} successful")
+                logging.info(f"Connection to PostgreSQL {self.dbname} successful")
             except (OperationalError, InterfaceError) as e:
                 logging.exception(f"Error connecting to {self.dbname}: '{e}'")
         else:

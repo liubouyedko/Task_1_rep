@@ -1,12 +1,13 @@
 import logging
 import os
 
-# import sys
-
 from dotenv import load_dotenv
 
 from create_db import DatabaseManager, DataLoader
 from execute_queries import DataExporter
+
+# import sys
+
 
 dotenv_path = ".env"
 load_dotenv(dotenv_path=dotenv_path)

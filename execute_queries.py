@@ -1,8 +1,8 @@
 import json
 import logging
+import xml.etree.ElementTree as ET
 from decimal import Decimal
 from typing import Any, List, Tuple, Union
-import xml.etree.ElementTree as ET
 
 import psycopg2
 from bs4 import BeautifulSoup

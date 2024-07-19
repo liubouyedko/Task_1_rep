@@ -1,7 +1,8 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import unittest.mock
 import json
+import unittest
+import unittest.mock
+from unittest.mock import MagicMock, patch
+
 from create_db import DatabaseManager, DataLoader
 
 
@@ -12,7 +13,6 @@ class TestDatabaseManager(unittest.TestCase):
     @patch("dotenv.load_dotenv")
     @patch("os.getenv")
     def test_constructor_database_manager(self, mock_getenv, mock_load_dotenv):
-
         mock_getenv.side_effect = lambda x: {
             "DB_NAME": "test_db",
             "DB_USER": "test_user",
@@ -34,7 +34,6 @@ class TestDatabaseManager(unittest.TestCase):
     @patch("create_db.psycopg2.connect")
     @patch("create_db.os.getenv")
     def test_create_new_connection(self, mock_getenv, mock_connect):
-
         mock_getenv.side_effect = lambda key: {
             "DB_NAME": "test_db",
             "DB_USER": "test_user",
@@ -63,7 +62,6 @@ class TestDatabaseManager(unittest.TestCase):
     @patch("create_db.load_dotenv")
     @patch("builtins.open", new_callable=MagicMock)
     def test_execute_sql_file(self, mock_open, mock_load_dotenv):
-
         mock_file = MagicMock()
         mock_file.read.return_value = "SELECT * FROM test_table;"
         mock_open.return_value.__enter__.return_value = mock_file
