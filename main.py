@@ -47,7 +47,7 @@ def main(students_file_path: str, rooms_file_path: str, output_format: str) -> N
     db_manager.create_tables()
     connection = db_manager.create_connection()
 
-    sql_file = os.getenv("SQL_FILE")
+    sql_file = "select_queries.sql"
 
     data_loader.load_data_from_json(connection, rooms_file_path, "room")
     data_loader.load_data_from_json(connection, students_file_path, "student")

@@ -12,7 +12,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
-      SQL_FILE: ${SQL_FILE}
     healthcheck:
       test: pg_isready -U postgres
       interval: 5s
