@@ -2,20 +2,20 @@ import json
 import logging
 import xml.etree.ElementTree as ET
 from decimal import Decimal
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Tuple
 
 import psycopg2
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-dotenv_path = ".env"
+dotenv_path = "./.env"
 load_dotenv(dotenv_path=dotenv_path)
 
 
 # Logging configurations
 logging.basicConfig(
     level=logging.INFO,
-    filename="py_log.log",
+    filename="./py_log.log",
     filemode="w",
     format="%(process)d %(asctime)s %(levelname)s %(message)s",
 )
@@ -29,7 +29,7 @@ class DataExporter:
         connection (psycopg2.extensions.connection): The database connection object used to execute SQL queries.
 
     Methods:
-        execute_sql_file(sql_file: str, output_format: str = "dict") -> Union[List[List[dict]], List[Tuple[List[str], List[Tuple[Any, ...]]]]]:
+        execute_sql_file(sql_file: str, output_format: str = "dict") -> List[List[dict]] | List[Tuple[List[str], List[Tuple[Any, ...]]]]:
             Executes SQL queries from a file and returns the results in the specified format.
 
         create_indexes_from_sql_file(sql_file: str) -> None:
@@ -49,17 +49,11 @@ class DataExporter:
     """
 
     def __init__(self, connection):
-        """
-        Initializes the DataExporter with a database connection.
-
-        Args:
-            connection (psycopg2.extensions.connection): The database connection object.
-        """
         self.connection = connection
 
     def execute_sql_file(
         self, sql_file: str, output_format: str = "dict"
-    ) -> Union[List[List[dict]], List[Tuple[List[str], List[Tuple[Any, ...]]]]]:
+    ) -> List[List[dict]] | List[Tuple[List[str], List[Tuple[Any, ...]]]]:
         """
         Executes SQL queries from a file and returns the results in the specified format.
 
@@ -73,7 +67,7 @@ class DataExporter:
                 for a list of tuples containing column names and rows. Defaults to "dict".
 
         Returns:
-            Union[List[List[dict]], List[Tuple[List[str], List[Tuple[Any, ...]]]]]: The results of the executed SQL queries,
+            List[List[dict]] | List[Tuple[List[str], List[Tuple[Any, ...]]]]: The results of the executed SQL queries,
                 formatted according to the output format.
         """
         with open(sql_file, "r") as file:

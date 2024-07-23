@@ -1,6 +1,7 @@
-virtual_space/
-__pycache__
+__pycache__/
 py_log.log
 *.env
-myenv
-postgres
+myenv/
+postgres/
+rooms.json
+students.json

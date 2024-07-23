@@ -1,6 +1,5 @@
-virtual_space/
-__pycache__
+__pycache__/
 *.log
 *.env
-myenv
-postgres
+myenv/
+postgres/

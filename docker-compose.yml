@@ -30,6 +30,7 @@ services:
       - ".env"
     volumes:
       - .:/app
+    working_dir: /app
     command: [ "students.json", "rooms.json", "json" ]
     tty: true
     stdin_open: true

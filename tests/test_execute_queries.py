@@ -1,9 +1,15 @@
 import logging
+import os
+import sys
 import unittest
 import unittest.mock
 from unittest.mock import MagicMock, call, mock_open, patch
 
 import psycopg2
+
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+)
 
 from execute_queries import DataExporter
 

@@ -1,8 +1,8 @@
-psycopg2
-beautifulsoup4
-lxml
-python-dotenv
-black
-flake8
-isort
-pre-commit
+psycopg2== 2.9.9
+beautifulsoup4==4.12.3
+lxml==5.2.2
+python-dotenv==1.0.1
+black==24.4.2
+flake8==7.1.0
+isort==5.13.2
+pre-commit==3.7.1

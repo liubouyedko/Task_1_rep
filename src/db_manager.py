@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from typing import Optional
@@ -7,14 +6,13 @@ import psycopg2
 from dotenv import load_dotenv
 from psycopg2 import InterfaceError, OperationalError
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from psycopg2.extensions import connection as pg_connection
 
 connection = None
 
 # Logging configurations
 logging.basicConfig(
     level=logging.INFO,
-    filename="py_log.log",
+    filename="./py_log.log",
     filemode="w",
     format="%(process)d %(asctime)s %(levelname)s %(message)s",
 )
@@ -35,13 +33,13 @@ class DatabaseManager:
         password (str): The password to connect to the database.
         host (str): The host address of the database.
         port (str): The port number on which the database server is listening.
-        connection (Optional[psycopg2.extensions.connection]): The database connection object.
+        connection (Optional[psycopg2.extensions.connection]): The database connection object, initially set to None.
 
     Methods:
         create_connection() -> psycopg2.extensions.connection:
             Creates and returns a connection to the PostgreSQL database.
 
-        execute_sql_file(filename: str, connection: psycopg2.extensions.connection) -> psycopg2.extensions.connection:
+        execute_sql_file(filename: str, connection: Optional[psycopg2.extensions.connection] = None) -> psycopg2.extensions.connection:
             Executes a SQL file using the provided database connection.
 
         create_database() -> psycopg2.extensions.cursor:
@@ -52,11 +50,7 @@ class DatabaseManager:
     """
 
     def __init__(self) -> None:
-        """
-        Initializes the DatabaseManager instance by loading database configuration
-        from a .env file and setting up the necessary attributes.
-        """
-        dotenv_path = ".env"
+        dotenv_path = "./.env"
         load_dotenv(dotenv_path=dotenv_path)
 
         # Database configurations
@@ -71,7 +65,7 @@ class DatabaseManager:
         self.password = password
         self.host = host
         self.port = port
-        self.connection: Optional[pg_connection] = None
+        self.connection: Optional[psycopg2.extensions.connection] = None
 
     def create_connection(self) -> psycopg2.extensions.connection:
         """
@@ -93,9 +87,9 @@ class DatabaseManager:
             Logs a message indicating whether the connection was successful or if an error occurred.
         """
         global connection
-        if connection is None or connection.closed:
+        if self.connection is None or self.connection.closed:
             try:
-                connection = psycopg2.connect(
+                self.connection = psycopg2.connect(
                     dbname=self.dbname,
                     user=self.user,
                     password=self.password,
@@ -107,11 +101,11 @@ class DatabaseManager:
                 logging.exception(f"Error connecting to {self.dbname}: '{e}'")
         else:
             try:
-                with connection.cursor() as cursor:
+                with self.connection.cursor() as cursor:
                     cursor.execute("SELECT 1;")
             except (OperationalError, InterfaceError):
                 try:
-                    connection = psycopg2.connect(
+                    self.connection = psycopg2.connect(
                         dbname=self.dbname,
                         user=self.user,
                         password=self.password,
@@ -123,10 +117,10 @@ class DatabaseManager:
                     logging.exception(
                         f"The error '{e}' occurred during reconnecting to {self.dbname}"
                     )
-        return connection
+        return self.connection
 
     def execute_sql_file(
-        self, filename: str, connection: psycopg2.extensions.connection
+        self, filename: str, connection: Optional[psycopg2.extensions.connection] = None
     ) -> psycopg2.extensions.connection:
         """
         Executes a SQL file using the provided database connection.
@@ -136,16 +130,20 @@ class DatabaseManager:
 
         Args:
             filename (str): The path to the SQL file.
-            connection (psycopg2.extensions.connection): The database connection object.
+            connection (psycopg2.extensions.connection, optional): The database connection object. Defaults to None.
 
         Returns:
             psycopg2.extensions.connection: The database connection object after executing the SQL file.
         """
+        if connection is None:
+            connection = self.create_connection()
+
         with open(filename, "r") as file:
             sql = file.read()
-        cursor = connection.cursor()
-        cursor.execute(sql)
-        cursor.close()
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+
         return connection
 
     def create_database(self) -> psycopg2.extensions.cursor:
@@ -198,17 +196,11 @@ class DatabaseManager:
         Raises:
             psycopg2.Error: If there is an error during the connection or table creation process.
         """
-        conn = psycopg2.connect(
-            dbname=self.dbname,
-            user=self.user,
-            password=self.password,
-            host=self.host,
-            port=self.port,
-        )
+        conn = self.create_connection()
         cursor = conn.cursor()
 
         try:
-            DatabaseManager.execute_sql_file(self, "db_schema.sql", conn)
+            self.execute_sql_file("./sql_queries/db_schema.sql", conn)
             conn.commit()
             logging.info("Tables created successfully.")
             success = True
@@ -220,103 +212,3 @@ class DatabaseManager:
         cursor.close()
         conn.close()
         return success
-
-
-class DataLoader:
-    """
-    A class to handle loading data into a PostgreSQL database from JSON files.
-
-    The DataLoader class is responsible for reading data from JSON files and
-    inserting it into specified tables within a PostgreSQL database. It supports
-    inserting data into 'student' and 'room' tables, handling conflicts by ignoring
-    duplicate entries based on the 'id' field.
-
-    Attributes:
-        db_manager (DatabaseManager): An instance of the DatabaseManager class to manage database connections.
-
-    Methods:
-        load_data_from_json(connection: Optional[psycopg2.extensions.connection], json_file_path: str, table_name: str):
-            Loads data from a specified JSON file into the given table in the PostgreSQL database.
-    """
-
-    def __init__(self, db_manager: DatabaseManager) -> None:
-        """
-        Initializes the DataLoader instance with a DatabaseManager object.
-
-        Args:
-            db_manager (DatabaseManager): An instance of the DatabaseManager class to manage database connections.
-        """
-        self.db_manager = db_manager
-
-    def load_data_from_json(
-        self,
-        connection: Optional[psycopg2.extensions.connection],
-        json_file_path: str,
-        table_name: str,
-    ) -> None:
-        """
-        Loads data from a specified JSON file into the given table in the PostgreSQL database.
-
-        This method reads data from a JSON file and inserts it into the specified table. It supports
-        inserting data into 'student' and 'room' tables. If a connection to the database is not provided,
-        it logs an error. The method handles any IOErrors that occur during file reading and logs the
-        exception.
-
-        Args:
-            connection (psycopg2.extensions.connection): The database connection object.
-            json_file_path (str): The path to the JSON file containing the data.
-            table_name (str): The name of the table to insert the data into.
-
-        Raises:
-            IOError: If there is an error opening the JSON file.
-        """
-        if connection is None:
-            logging.error(
-                f"Failed to load data into {table_name}: No connection to the DB."
-            )
-            return
-
-        try:
-            with open(json_file_path, "r", encoding="utf-8") as file:
-                data = json.load(file)
-
-                if table_name == "student":
-                    insert_query = (
-                        f"INSERT INTO {table_name} (birthday, id, name, room, sex) "
-                        f"VALUES (%s, %s, %s, %s, %s) "
-                        f"ON CONFLICT (id) DO NOTHING"
-                    )
-
-                    records = [
-                        (
-                            record.get("birthday", None),
-                            record.get("id", None),
-                            record.get("name", None),
-                            record.get("room", None),
-                            record.get("sex", None),
-                        )
-                        for record in data
-                    ]
-
-                    with connection.cursor() as cursor:
-                        cursor.executemany(insert_query, records)
-                        connection.commit()
-
-                elif table_name == "room":
-                    insert_query = (
-                        f"INSERT INTO {table_name} (id, name) "
-                        f"VALUES (%s, %s) "
-                        f"ON CONFLICT (id) DO NOTHING"
-                    )
-
-                    records = [
-                        (record.get("id", None), record.get("name", None))
-                        for record in data
-                    ]
-
-                    with connection.cursor() as cursor:
-                        cursor.executemany(insert_query, records)
-                        connection.commit()
-
-        except IOError as e:
-            logging.exception(f"'{e}' occurred during opening {json_file_path}")
