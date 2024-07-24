@@ -89,21 +89,17 @@ class TestDatabaseManager(unittest.TestCase):
         Test `execute_sql_file` to ensure it correctly reads SQL from a file and executes it.
         """
         mock_cursor = MagicMock()
-        mock_connection.return_value.cursor.return_value.__enter__.return_value = (
-            mock_cursor
-        )
+        mock_connection.cursor.return_value = mock_cursor
         exporter = DatabaseManager()
 
         result_connection = exporter.execute_sql_file(
-            "./sql_queries/db_schema.sql", mock_connection.return_value
+            "./sql_queries/db_schema.sql", mock_connection
         )
-
         mock_open.assert_called_once_with("./sql_queries/db_schema.sql", "r")
-        mock_open.return_value.__enter__.assert_called_once()
-        mock_open.return_value.__exit__.assert_called_once_with(None, None, None)
         mock_cursor.execute.assert_called_once_with("SELECT * FROM test_table;")
+        mock_cursor.close.assert_called_once()
 
-        self.assertEqual(result_connection, mock_connection.return_value)
+        self.assertEqual(result_connection, mock_connection)
 
     # -----------------------------------------------------------------
     @patch(
@@ -116,15 +112,13 @@ class TestDatabaseManager(unittest.TestCase):
         when SQL execution fails.
         """
         mock_cursor = MagicMock()
-        mock_connection.return_value.cursor.return_value.__enter__.return_value = (
-            mock_cursor
-        )
+        mock_connection.cursor.return_value = mock_cursor
 
         mock_cursor.execute.side_effect = psycopg2.Error("SQL error")
         instance = DatabaseManager()
 
         with self.assertRaises(psycopg2.Error):
-            instance.execute_sql_file("test.sql", mock_connection.return_value)
+            instance.execute_sql_file("test.sql", mock_connection)
 
     # -----------------------------------------------------------------
     @patch("db_manager.psycopg2.connect")
@@ -148,19 +142,10 @@ class TestDatabaseManager(unittest.TestCase):
         mock_connect.return_value = mock_connection
 
         manager = DatabaseManager()
-        manager.create_database()
-
-        mock_connect.assert_called_once_with(
-            dbname="test_db",
-            user="test_user",
-            password="test_password",
-            host="localhost",
-            port="5432",
-        )
+        manager.create_database(mock_connection)
 
         mock_cursor.execute.assert_called_once_with("CREATE DATABASE test_db")
         mock_cursor.close.assert_called_once()
-        mock_connection.close.assert_called_once()
 
     # -----------------------------------------------------------------
     @patch("db_manager.psycopg2.connect")
@@ -183,22 +168,14 @@ class TestDatabaseManager(unittest.TestCase):
         mock_cursor = mock_connection.cursor.return_value
 
         manager = DatabaseManager()
-        result = manager.create_tables()
+        result = manager.create_tables(mock_connection)
 
         self.assertTrue(result)
-        mock_connect.assert_called_once_with(
-            dbname="test_db",
-            user="test_user",
-            password="test_password",
-            host="localhost",
-            port="5432",
-        )
 
         mock_execute_sql_file.assert_called_once_with(
             "./sql_queries/db_schema.sql", mock_connection
         )
         mock_cursor.close.assert_called_once()
-        mock_connection.close.assert_called_once()
 
 
 if __name__ == "__main__":
