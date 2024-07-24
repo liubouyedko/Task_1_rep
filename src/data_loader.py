@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Optional
 
 import psycopg2
 
@@ -20,7 +19,7 @@ class DataLoader:
         db_manager (DatabaseManager): An instance of the DatabaseManager class to manage database connections.
 
     Methods:
-        load_data_from_json(connection: Optional[psycopg2.extensions.connection], json_file_path: str, table_name: str):
+        load_data_from_json(connection: psycopg2.extensions.connection, json_file_path: str, table_name: str):
             Loads data from a specified JSON file into the given table in the PostgreSQL database.
     """
 
@@ -29,7 +28,7 @@ class DataLoader:
 
     def load_data_from_json(
         self,
-        connection: Optional[psycopg2.extensions.connection],
+        connection: psycopg2.extensions.connection,
         json_file_path: str,
         table_name: str,
     ) -> None:
@@ -49,12 +48,6 @@ class DataLoader:
         Raises:
             IOError: If there is an error opening the JSON file.
         """
-        if connection is None:
-            logging.error(
-                f"Failed to load data into {table_name}: No connection to the DB."
-            )
-            return
-
         try:
             with open(json_file_path, "r", encoding="utf-8") as file:
                 data = json.load(file)

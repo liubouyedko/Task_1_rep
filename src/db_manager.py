@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Optional
 
 import psycopg2
 from dotenv import load_dotenv
@@ -33,19 +32,18 @@ class DatabaseManager:
         password (str): The password to connect to the database.
         host (str): The host address of the database.
         port (str): The port number on which the database server is listening.
-        connection (Optional[psycopg2.extensions.connection]): The database connection object, initially set to None.
 
     Methods:
         create_connection() -> psycopg2.extensions.connection:
             Creates and returns a connection to the PostgreSQL database.
 
-        execute_sql_file(filename: str, connection: Optional[psycopg2.extensions.connection] = None) -> psycopg2.extensions.connection:
+        execute_sql_file(filename: str, connection: psycopg2.extensions.connection) -> psycopg2.extensions.connection:
             Executes a SQL file using the provided database connection.
 
-        create_database() -> psycopg2.extensions.cursor:
+        create_database(connection) -> psycopg2.extensions.cursor:
             Creates the database specified in the dbname attribute if it doesn't already exist.
 
-        create_tables() -> bool:
+        create_tables(connection) -> bool:
             Creates tables in the PostgreSQL database using a SQL schema file.
     """
 
@@ -65,7 +63,6 @@ class DatabaseManager:
         self.password = password
         self.host = host
         self.port = port
-        self.connection: Optional[psycopg2.extensions.connection] = None
 
     def create_connection(self) -> psycopg2.extensions.connection:
         """
@@ -87,9 +84,9 @@ class DatabaseManager:
             Logs a message indicating whether the connection was successful or if an error occurred.
         """
         global connection
-        if self.connection is None or self.connection.closed:
+        if connection is None or connection.closed:
             try:
-                self.connection = psycopg2.connect(
+                connection = psycopg2.connect(
                     dbname=self.dbname,
                     user=self.user,
                     password=self.password,
@@ -101,11 +98,11 @@ class DatabaseManager:
                 logging.exception(f"Error connecting to {self.dbname}: '{e}'")
         else:
             try:
-                with self.connection.cursor() as cursor:
+                with connection.cursor() as cursor:
                     cursor.execute("SELECT 1;")
             except (OperationalError, InterfaceError):
                 try:
-                    self.connection = psycopg2.connect(
+                    connection = psycopg2.connect(
                         dbname=self.dbname,
                         user=self.user,
                         password=self.password,
@@ -117,10 +114,10 @@ class DatabaseManager:
                     logging.exception(
                         f"The error '{e}' occurred during reconnecting to {self.dbname}"
                     )
-        return self.connection
+        return connection
 
     def execute_sql_file(
-        self, filename: str, connection: Optional[psycopg2.extensions.connection] = None
+        self, filename: str, connection: psycopg2.extensions.connection
     ) -> psycopg2.extensions.connection:
         """
         Executes a SQL file using the provided database connection.
@@ -130,45 +127,43 @@ class DatabaseManager:
 
         Args:
             filename (str): The path to the SQL file.
-            connection (psycopg2.extensions.connection, optional): The database connection object. Defaults to None.
+            connection (psycopg2.extensions.connection): The database connection object.
 
         Returns:
             psycopg2.extensions.connection: The database connection object after executing the SQL file.
         """
-        if connection is None:
-            connection = self.create_connection()
-
         with open(filename, "r") as file:
             sql = file.read()
 
-        with connection.cursor() as cursor:
+        cursor = connection.cursor()
+        try:
             cursor.execute(sql)
+        except psycopg2.Error as e:
+            logging.error(f"Error executing SQL file {filename}: {e}")
+            connection.rollback()
+            raise
+        else:
+            connection.commit()
+        finally:
+            cursor.close()
 
         return connection
 
-    def create_database(self) -> psycopg2.extensions.cursor:
+    def create_database(self, connection) -> psycopg2.extensions.cursor:
         """
-        Creates the database specified in the dbname attribute if it doesn't already exist.
+        Creates the database specified in dbname if it doesn't exist.
 
-        Connects to the PostgreSQL server and attempts to create a database with the
-        name specified in the dbname attribute. If the database already exists, it logs
-        an informational message.
+        Args:
+            connection (psycopg2.extensions.connection): The database connection object.
 
         Returns:
             psycopg2.extensions.cursor: The cursor object used for database operations.
 
-        Raises:
-            psycopg2.errors.DuplicateDatabase: If the database already exists.
+        Logs:
+            Success or existence of the database.
         """
-        conn = psycopg2.connect(
-            dbname=self.dbname,
-            user=self.user,
-            password=self.password,
-            host=self.host,
-            port=self.port,
-        )
-        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
+        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = connection.cursor()
 
         try:
             cursor.execute(f"CREATE DATABASE {self.dbname}")
@@ -177,38 +172,34 @@ class DatabaseManager:
             logging.info(f"Database '{self.dbname}' already exists.")
 
         cursor.close()
-        conn.close()
+        # connection.close()
         return cursor
 
-    def create_tables(self) -> bool:
+    def create_tables(self, connection) -> bool:
         """
-        Creates tables in the PostgreSQL database using a SQL schema file.
+        Creates tables in the PostgreSQL database using the specified SQL schema file.
 
-        This method connects to the PostgreSQL database specified in the instance's attributes and
-        executes SQL commands from the "db_schema.sql" file to create the necessary tables. If the
-        tables are created successfully, a commit is performed, and a log message is recorded.
-        If there is an error, such as an undefined table, the transaction is rolled back, and an
-        error message is logged.
+        Executes SQL commands from the "db_schema.sql" file to create the necessary tables.
+        Commits the transaction if successful, otherwise rolls back on error.
+
+        Args:
+            connection (psycopg2.extensions.connection): The database connection object.
 
         Returns:
             bool: True if the tables were created successfully, False if an error occurred.
-
-        Raises:
-            psycopg2.Error: If there is an error during the connection or table creation process.
         """
-        conn = self.create_connection()
-        cursor = conn.cursor()
+        cursor = connection.cursor()
 
         try:
-            self.execute_sql_file("./sql_queries/db_schema.sql", conn)
-            conn.commit()
+            self.execute_sql_file("./sql_queries/db_schema.sql", connection)
+            connection.commit()
             logging.info("Tables created successfully.")
             success = True
         except psycopg2.errors.UndefinedTable as e:
             success = False
-            conn.rollback()
+            connection.rollback()
             logging.error(f"Error creating tables: {e}")
 
         cursor.close()
-        conn.close()
+        # connection.close()
         return success

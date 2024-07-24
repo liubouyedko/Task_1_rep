@@ -39,9 +39,9 @@ def main(students_file_path: str, rooms_file_path: str, output_format: str) -> N
     db_manager = DatabaseManager()
     data_loader = DataLoader(db_manager)
 
-    db_manager.create_database()
-    db_manager.create_tables()
     connection = db_manager.create_connection()
+    db_manager.create_database(connection)
+    db_manager.create_tables(connection)
 
     sql_file = "./sql_queries/select_queries.sql"
 
